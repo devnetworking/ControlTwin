@@ -1,0 +1,53 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+* {
+  border-color: #1b3a6b;
+}
+
+body {
+  margin: 0;
+  font-family: "Inter", sans-serif;
+  background: #0a1628;
+  color: #ffffff;
+}
+
+.mono {
+  font-family: "JetBrains Mono", monospace;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0f1f3d;
+}
+::-webkit-scrollbar-thumb {
+  background: #00a8e8;
+  border-radius: 999px;
+}
+
+@keyframes glowGreen {
+  0%, 100% { box-shadow: 0 0 4px #2ecc71; }
+  50% { box-shadow: 0 0 12px #2ecc71; }
+}
+@keyframes glowRed {
+  0%, 100% { box-shadow: 0 0 4px #e74c3c; }
+  50% { box-shadow: 0 0 12px #e74c3c; }
+}
+@keyframes glowOrange {
+  0%, 100% { box-shadow: 0 0 4px #f4a020; }
+  50% { box-shadow: 0 0 12px #f4a020; }
+}
+
+.status-glow-green { animation: glowGreen 2s infinite ease-in-out; }
+.status-glow-red { animation: glowRed 2s infinite ease-in-out; }
+.status-glow-orange { animation: glowOrange 2s infinite ease-in-out; }
