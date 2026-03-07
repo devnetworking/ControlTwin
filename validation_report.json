@@ -1,0 +1,554 @@
+{
+  "timestamp": "2026-03-06T23:44:39Z",
+  "git_hash": null,
+  "root": "C:\\Users\\hamza\\OneDrive\\Documents\\Udes\\Doctorat\\Programming\\ICSTwin",
+  "summary": {
+    "critical_missing": 0,
+    "optional_missing": 0,
+    "syntax_errors": 0,
+    "quality_warnings": 4,
+    "validation_errors": 0,
+    "strict_mode": false
+  },
+  "projects": {
+    "controltwin-backend": {
+      "project": "controltwin-backend",
+      "exists": true,
+      "critical_total": 32,
+      "critical_present": 32,
+      "optional_total": 4,
+      "optional_present": 4,
+      "critical_missing": [],
+      "optional_missing": [],
+      "syntax_errors": 0,
+      "quality_warnings": 4,
+      "validation_errors": 0,
+      "stubs_created": [],
+      "per_file_details": [
+        {
+          "path": "controltwin-backend\\app\\__init__.py",
+          "required": "critical",
+          "status": "warning",
+          "line_count": 10,
+          "issues": [
+            "Python file has < 20 lines (possible stub)."
+          ]
+        },
+        {
+          "path": "controltwin-backend\\app\\main.py",
+          "required": "critical",
+          "status": "ok",
+          "line_count": 30,
+          "issues": []
+        },
+        {
+          "path": "controltwin-backend\\app\\core\\config.py",
+          "required": "critical",
+          "status": "ok",
+          "line_count": 62,
+          "issues": []
+        },
+        {
+          "path": "controltwin-backend\\app\\core\\security.py",
+          "required": "critical",
+          "status": "ok",
+          "line_count": 77,
+          "issues": []
+        },
+        {
+          "path": "controltwin-backend\\app\\core\\logging.py",
+          "required": "critical",
+          "status": "warning",
+          "line_count": 13,
+          "issues": [
+            "Python file has < 20 lines (possible stub)."
+          ]
+        },
+        {
+          "path": "controltwin-backend\\app\\models\\__init__.py",
+          "required": "critical",
+          "status": "warning",
+          "line_count": 10,
+          "issues": [
+            "Python file has < 20 lines (possible stub)."
+          ]
+        },
+        {
+          "path": "controltwin-backend\\app\\models\\models.py",
+          "required": "critical",
+          "status": "ok",
+          "line_count": 314,
+          "issues": []
+        },
+        {
+          "path": "controltwin-backend\\app\\schemas\\schemas.py",
+          "required": "critical",
+          "status": "ok",
+          "line_count": 335,
+          "issues": []
+        },
+        {
+          "path": "controltwin-backend\\app\\auth\\dependencies.py",
+          "required": "critical",
+          "status": "ok",
+          "line_count": 38,
+          "issues": []
+        },
+        {
+          "path": "controltwin-backend\\app\\auth\\rbac.py",
+          "required": "critical",
+          "status": "ok",
+          "line_count": 123,
+          "issues": []
+        },
+        {
+          "path": "controltwin-backend\\app\\db\\postgres.py",
+          "required": "critical",
+          "status": "ok",
+          "line_count": 36,
+          "issues": []
+        },
+        {
+          "path": "controltwin-backend\\app\\db\\influxdb.py",
+          "required": "critical",
+          "status": "ok",
+          "line_count": 159,
+          "issues": []
+        },
+        {
+          "path": "controltwin-backend\\app\\services\\user_service.py",
+          "required": "critical",
+          "status": "ok",
+          "line_count": 100,
+          "issues": []
+        },
+        {
+          "path": "controltwin-backend\\app\\services\\asset_service.py",
+          "required": "critical",
+          "status": "ok",
+          "line_count": 111,
+          "issues": []
+        },
+        {
+          "path": "controltwin-backend\\app\\services\\alert_service.py",
+          "required": "critical",
+          "status": "ok",
+          "line_count": 98,
+          "issues": []
+        },
+        {
+          "path": "controltwin-backend\\app\\services\\kafka_service.py",
+          "required": "critical",
+          "status": "ok",
+          "line_count": 69,
+          "issues": []
+        },
+        {
+          "path": "controltwin-backend\\app\\collectors\\modbus_collector.py",
+          "required": "critical",
+          "status": "ok",
+          "line_count": 155,
+          "issues": []
+        },
+        {
+          "path": "controltwin-backend\\app\\collectors\\opcua_collector.py",
+          "required": "critical",
+          "status": "ok",
+          "line_count": 153,
+          "issues": []
+        },
+        {
+          "path": "controltwin-backend\\app\\api\\v1\\router.py",
+          "required": "critical",
+          "status": "ok",
+          "line_count": 22,
+          "issues": []
+        },
+        {
+          "path": "controltwin-backend\\app\\api\\v1\\endpoints\\auth.py",
+          "required": "critical",
+          "status": "ok",
+          "line_count": 26,
+          "issues": []
+        },
+        {
+          "path": "controltwin-backend\\app\\api\\v1\\endpoints\\users.py",
+          "required": "critical",
+          "status": "ok",
+          "line_count": 28,
+          "issues": []
+        },
+        {
+          "path": "controltwin-backend\\app\\api\\v1\\endpoints\\sites.py",
+          "required": "critical",
+          "status": "ok",
+          "line_count": 51,
+          "issues": []
+        },
+        {
+          "path": "controltwin-backend\\app\\api\\v1\\endpoints\\assets.py",
+          "required": "critical",
+          "status": "ok",
+          "line_count": 61,
+          "issues": []
+        },
+        {
+          "path": "controltwin-backend\\app\\api\\v1\\endpoints\\datapoints.py",
+          "required": "critical",
+          "status": "ok",
+          "line_count": 81,
+          "issues": []
+        },
+        {
+          "path": "controltwin-backend\\app\\api\\v1\\endpoints\\alerts.py",
+          "required": "critical",
+          "status": "ok",
+          "line_count": 78,
+          "issues": []
+        },
+        {
+          "path": "controltwin-backend\\app\\api\\v1\\endpoints\\collectors.py",
+          "required": "critical",
+          "status": "ok",
+          "line_count": 56,
+          "issues": []
+        },
+        {
+          "path": "controltwin-backend\\app\\api\\v1\\endpoints\\health.py",
+          "required": "critical",
+          "status": "ok",
+          "line_count": 32,
+          "issues": []
+        },
+        {
+          "path": "controltwin-backend\\docker-compose.yml",
+          "required": "critical",
+          "status": "warning",
+          "line_count": 135,
+          "issues": [
+            "PyYAML not installed; YAML validation skipped."
+          ]
+        },
+        {
+          "path": "controltwin-backend\\docker\\Dockerfile",
+          "required": "critical",
+          "status": "ok",
+          "line_count": 36,
+          "issues": []
+        },
+        {
+          "path": "controltwin-backend\\docker\\postgres\\init.sql",
+          "required": "critical",
+          "status": "ok",
+          "line_count": 2,
+          "issues": []
+        },
+        {
+          "path": "controltwin-backend\\requirements.txt",
+          "required": "critical",
+          "status": "ok",
+          "line_count": 18,
+          "issues": []
+        },
+        {
+          "path": "controltwin-backend\\.env.example",
+          "required": "critical",
+          "status": "ok",
+          "line_count": 48,
+          "issues": []
+        },
+        {
+          "path": "controltwin-backend\\tests\\test_backend.py",
+          "required": "optional",
+          "status": "ok",
+          "line_count": 199,
+          "issues": []
+        },
+        {
+          "path": "controltwin-backend\\README.md",
+          "required": "optional",
+          "status": "ok",
+          "line_count": 95,
+          "issues": []
+        },
+        {
+          "path": "controltwin-backend\\alembic.ini",
+          "required": "optional",
+          "status": "ok",
+          "line_count": 42,
+          "issues": []
+        },
+        {
+          "path": "controltwin-backend\\alembic\\env.py",
+          "required": "optional",
+          "status": "ok",
+          "line_count": 84,
+          "issues": []
+        }
+      ]
+    }
+  },
+  "per_file_details": [
+    {
+      "path": "controltwin-backend\\app\\__init__.py",
+      "required": "critical",
+      "status": "warning",
+      "line_count": 10,
+      "issues": [
+        "Python file has < 20 lines (possible stub)."
+      ]
+    },
+    {
+      "path": "controltwin-backend\\app\\main.py",
+      "required": "critical",
+      "status": "ok",
+      "line_count": 30,
+      "issues": []
+    },
+    {
+      "path": "controltwin-backend\\app\\core\\config.py",
+      "required": "critical",
+      "status": "ok",
+      "line_count": 62,
+      "issues": []
+    },
+    {
+      "path": "controltwin-backend\\app\\core\\security.py",
+      "required": "critical",
+      "status": "ok",
+      "line_count": 77,
+      "issues": []
+    },
+    {
+      "path": "controltwin-backend\\app\\core\\logging.py",
+      "required": "critical",
+      "status": "warning",
+      "line_count": 13,
+      "issues": [
+        "Python file has < 20 lines (possible stub)."
+      ]
+    },
+    {
+      "path": "controltwin-backend\\app\\models\\__init__.py",
+      "required": "critical",
+      "status": "warning",
+      "line_count": 10,
+      "issues": [
+        "Python file has < 20 lines (possible stub)."
+      ]
+    },
+    {
+      "path": "controltwin-backend\\app\\models\\models.py",
+      "required": "critical",
+      "status": "ok",
+      "line_count": 314,
+      "issues": []
+    },
+    {
+      "path": "controltwin-backend\\app\\schemas\\schemas.py",
+      "required": "critical",
+      "status": "ok",
+      "line_count": 335,
+      "issues": []
+    },
+    {
+      "path": "controltwin-backend\\app\\auth\\dependencies.py",
+      "required": "critical",
+      "status": "ok",
+      "line_count": 38,
+      "issues": []
+    },
+    {
+      "path": "controltwin-backend\\app\\auth\\rbac.py",
+      "required": "critical",
+      "status": "ok",
+      "line_count": 123,
+      "issues": []
+    },
+    {
+      "path": "controltwin-backend\\app\\db\\postgres.py",
+      "required": "critical",
+      "status": "ok",
+      "line_count": 36,
+      "issues": []
+    },
+    {
+      "path": "controltwin-backend\\app\\db\\influxdb.py",
+      "required": "critical",
+      "status": "ok",
+      "line_count": 159,
+      "issues": []
+    },
+    {
+      "path": "controltwin-backend\\app\\services\\user_service.py",
+      "required": "critical",
+      "status": "ok",
+      "line_count": 100,
+      "issues": []
+    },
+    {
+      "path": "controltwin-backend\\app\\services\\asset_service.py",
+      "required": "critical",
+      "status": "ok",
+      "line_count": 111,
+      "issues": []
+    },
+    {
+      "path": "controltwin-backend\\app\\services\\alert_service.py",
+      "required": "critical",
+      "status": "ok",
+      "line_count": 98,
+      "issues": []
+    },
+    {
+      "path": "controltwin-backend\\app\\services\\kafka_service.py",
+      "required": "critical",
+      "status": "ok",
+      "line_count": 69,
+      "issues": []
+    },
+    {
+      "path": "controltwin-backend\\app\\collectors\\modbus_collector.py",
+      "required": "critical",
+      "status": "ok",
+      "line_count": 155,
+      "issues": []
+    },
+    {
+      "path": "controltwin-backend\\app\\collectors\\opcua_collector.py",
+      "required": "critical",
+      "status": "ok",
+      "line_count": 153,
+      "issues": []
+    },
+    {
+      "path": "controltwin-backend\\app\\api\\v1\\router.py",
+      "required": "critical",
+      "status": "ok",
+      "line_count": 22,
+      "issues": []
+    },
+    {
+      "path": "controltwin-backend\\app\\api\\v1\\endpoints\\auth.py",
+      "required": "critical",
+      "status": "ok",
+      "line_count": 26,
+      "issues": []
+    },
+    {
+      "path": "controltwin-backend\\app\\api\\v1\\endpoints\\users.py",
+      "required": "critical",
+      "status": "ok",
+      "line_count": 28,
+      "issues": []
+    },
+    {
+      "path": "controltwin-backend\\app\\api\\v1\\endpoints\\sites.py",
+      "required": "critical",
+      "status": "ok",
+      "line_count": 51,
+      "issues": []
+    },
+    {
+      "path": "controltwin-backend\\app\\api\\v1\\endpoints\\assets.py",
+      "required": "critical",
+      "status": "ok",
+      "line_count": 61,
+      "issues": []
+    },
+    {
+      "path": "controltwin-backend\\app\\api\\v1\\endpoints\\datapoints.py",
+      "required": "critical",
+      "status": "ok",
+      "line_count": 81,
+      "issues": []
+    },
+    {
+      "path": "controltwin-backend\\app\\api\\v1\\endpoints\\alerts.py",
+      "required": "critical",
+      "status": "ok",
+      "line_count": 78,
+      "issues": []
+    },
+    {
+      "path": "controltwin-backend\\app\\api\\v1\\endpoints\\collectors.py",
+      "required": "critical",
+      "status": "ok",
+      "line_count": 56,
+      "issues": []
+    },
+    {
+      "path": "controltwin-backend\\app\\api\\v1\\endpoints\\health.py",
+      "required": "critical",
+      "status": "ok",
+      "line_count": 32,
+      "issues": []
+    },
+    {
+      "path": "controltwin-backend\\docker-compose.yml",
+      "required": "critical",
+      "status": "warning",
+      "line_count": 135,
+      "issues": [
+        "PyYAML not installed; YAML validation skipped."
+      ]
+    },
+    {
+      "path": "controltwin-backend\\docker\\Dockerfile",
+      "required": "critical",
+      "status": "ok",
+      "line_count": 36,
+      "issues": []
+    },
+    {
+      "path": "controltwin-backend\\docker\\postgres\\init.sql",
+      "required": "critical",
+      "status": "ok",
+      "line_count": 2,
+      "issues": []
+    },
+    {
+      "path": "controltwin-backend\\requirements.txt",
+      "required": "critical",
+      "status": "ok",
+      "line_count": 18,
+      "issues": []
+    },
+    {
+      "path": "controltwin-backend\\.env.example",
+      "required": "critical",
+      "status": "ok",
+      "line_count": 48,
+      "issues": []
+    },
+    {
+      "path": "controltwin-backend\\tests\\test_backend.py",
+      "required": "optional",
+      "status": "ok",
+      "line_count": 199,
+      "issues": []
+    },
+    {
+      "path": "controltwin-backend\\README.md",
+      "required": "optional",
+      "status": "ok",
+      "line_count": 95,
+      "issues": []
+    },
+    {
+      "path": "controltwin-backend\\alembic.ini",
+      "required": "optional",
+      "status": "ok",
+      "line_count": 42,
+      "issues": []
+    },
+    {
+      "path": "controltwin-backend\\alembic\\env.py",
+      "required": "optional",
+      "status": "ok",
+      "line_count": 84,
+      "issues": []
+    }
+  ],
+  "stubs_created": []
+}

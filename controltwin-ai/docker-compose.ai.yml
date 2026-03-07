@@ -1,0 +1,102 @@
+version: "3.9"
+
+services:
+  controltwin-ai:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.ai
+    container_name: controltwin-ai
+    ports:
+      - "8001:8001"
+    env_file:
+      - .env
+    depends_on:
+      - ollama
+      - chromadb
+      - redis
+      - mlflow
+    networks:
+      - controltwin_net
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: controltwin-ollama
+    volumes:
+      - ./ollama_models:/root/.ollama
+    ports:
+      - "11434:11434"
+    networks:
+      - controltwin_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 20s
+      timeout: 5s
+      retries: 10
+
+  ollama-init:
+    image: ollama/ollama:latest
+    container_name: controltwin-ollama-init
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    volumes:
+      - ./ollama_models:/root/.ollama
+      - ./docker/ollama/init.sh:/init.sh
+    command: ["sh", "/init.sh"]
+    networks:
+      - controltwin_net
+
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: controltwin-chromadb
+    volumes:
+      - ./chroma_data:/chroma/chroma
+    ports:
+      - "8010:8000"
+    networks:
+      - controltwin_net
+
+  redis:
+    image: redis:7-alpine
+    container_name: controltwin-redis
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - controltwin_net
+
+  celery-worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.ai
+    container_name: controltwin-celery
+    command: celery -A app.workers.celery_app worker --loglevel=info -Q default,ml_training
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - controltwin-ai
+    networks:
+      - controltwin_net
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.17.0
+    container_name: controltwin-mlflow
+    command: mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri sqlite:///mlflow.db
+    volumes:
+      - ./mlflow_data:/mlflow
+    ports:
+      - "5000:5000"
+    networks:
+      - controltwin_net
+
+networks:
+  controltwin_net:
+    driver: bridge
+
+volumes:
+  redis_data:

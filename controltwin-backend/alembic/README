@@ -1,0 +1,30 @@
+ControlTwin Alembic Migrations
+
+This directory contains database schema migrations for the ControlTwin backend
+(FastAPI + SQLAlchemy + PostgreSQL). Alembic is used to version and evolve the
+database schema safely across development, staging, and production.
+
+Common commands:
+
+1) Run all pending migrations:
+   alembic upgrade head
+
+2) Roll back one revision:
+   alembic downgrade -1
+
+3) Roll back to a specific revision:
+   alembic downgrade 0001_initial
+
+4) Create a new migration (autogenerate):
+   alembic revision --autogenerate -m "describe_change"
+
+5) View migration history:
+   alembic history --verbose
+
+6) Show current database revision:
+   alembic current --verbose
+
+Notes:
+- DATABASE_URL is loaded from app/core/config.py in env.py.
+- Async DB URL (postgresql+asyncpg://...) is converted to sync URL for Alembic.
+- Seed data migration is provided for local development/testing.
