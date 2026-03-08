@@ -3,6 +3,7 @@ import { getCollectors } from "../api/collectors";
 import { Table, TBody, TD, TH, THead, TR } from "../components/ui/table";
 import { formatDate } from "../lib/utils";
 import EmptyState from "../components/ui/EmptyState";
+import { useLang } from "../lang";
 
 function statusClass(status) {
   switch (status) {
@@ -20,6 +21,7 @@ function statusClass(status) {
 }
 
 export default function CollectorsPage() {
+  const { t } = useLang();
   const { data } = useQuery({
     queryKey: ["collectors"],
     queryFn: getCollectors,
@@ -29,24 +31,24 @@ export default function CollectorsPage() {
   const collectors = data?.items || data || [];
 
   if (!collectors.length) {
-    return <EmptyState title="No collectors" description="No collectors are configured for this environment." />;
+    return <EmptyState title={t("collectors.noCollectors")} description={t("common.noData")} />;
   }
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Collectors</h1>
+      <h1 className="text-2xl font-semibold">{t("collectors.title")}</h1>
       <div className="rounded-lg border border-ot-border bg-ot-card">
         <Table>
           <THead>
             <TR>
-              <TH>Name</TH>
-              <TH>Protocol</TH>
-              <TH>Host:Port</TH>
-              <TH>Poll Interval</TH>
-              <TH>Status</TH>
-              <TH>Last Heartbeat</TH>
-              <TH>Points Collected</TH>
-              <TH>Site</TH>
+              <TH>{t("collectors.name")}</TH>
+              <TH>{t("collectors.protocol")}</TH>
+              <TH>{t("collectors.host")}:{t("collectors.port")}</TH>
+              <TH>{t("collectors.lastPoll")}</TH>
+              <TH>{t("collectors.status")}</TH>
+              <TH>{t("collectors.lastPoll")}</TH>
+              <TH>{t("dashboard.totalAssets")}</TH>
+              <TH>{t("assets.site")}</TH>
             </TR>
           </THead>
           <TBody>

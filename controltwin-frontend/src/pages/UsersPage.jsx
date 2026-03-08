@@ -11,6 +11,7 @@ import { formatDate } from "../lib/utils";
 import EmptyState from "../components/ui/EmptyState";
 import { useAuth } from "../hooks/useAuth";
 import { activateUser, createUser, deactivateUser, deleteUser, listUsers, updateUser } from "../api/users";
+import { useLang } from "../lang";
 
 function roleColor(role) {
   return ROLE_LABELS[role]?.color || "#6B7280";
@@ -29,6 +30,7 @@ const emptyEditForm = {
 };
 
 export default function UsersPage() {
+  const { t } = useLang();
   const { role } = useAuth();
   const canManageUsers = role === "admin" || role === "super_admin";
 
@@ -141,33 +143,33 @@ export default function UsersPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Users</h1>
+        <h1 className="text-2xl font-semibold">{t("users.title")}</h1>
         <Button
           onClick={() => {
             setErrorMessage("");
             setOpenCreate(true);
           }}
         >
-          Add User
+          {t("users.addUser")}
         </Button>
       </div>
 
       {errorMessage ? <div className="text-sm text-ot-red">{errorMessage}</div> : null}
 
       {!isLoading && !users.length ? (
-        <EmptyState title="No users" description="No users found in this environment." />
+        <EmptyState title={t("users.noUsers")} description={t("common.noData")} />
       ) : null}
 
       <div className="rounded-lg border border-ot-border bg-ot-card">
         <Table>
           <THead>
             <TR>
-              <TH>Username</TH>
-              <TH>Email</TH>
-              <TH>Role</TH>
-              <TH>Active</TH>
-              <TH>Last Login</TH>
-              <TH>Actions</TH>
+              <TH>{t("users.username")}</TH>
+              <TH>{t("users.email")}</TH>
+              <TH>{t("users.role")}</TH>
+              <TH>{t("users.status")}</TH>
+              <TH>{t("users.lastLogin")}</TH>
+              <TH>{t("users.actions")}</TH>
             </TR>
           </THead>
           <TBody>
@@ -185,7 +187,7 @@ export default function UsersPage() {
                 <TD>
                   <div className="flex gap-2">
                     <Button size="sm" variant="outline" onClick={() => openEditDialog(u)}>
-                      Update
+                      {t("common.edit")}
                     </Button>
                     <Button
                       size="sm"
@@ -193,10 +195,10 @@ export default function UsersPage() {
                       disabled={busyUserId === u.id}
                       onClick={() => handleToggleActive(u)}
                     >
-                      {u.is_active ? "Disable" : "Activate"}
+                      {u.is_active ? t("users.inactive") : t("users.active")}
                     </Button>
                     <Button size="sm" variant="destructive" disabled={busyUserId === u.id} onClick={() => handleDelete(u)}>
-                      Delete
+                      {t("common.delete")}
                     </Button>
                   </div>
                 </TD>
@@ -206,7 +208,7 @@ export default function UsersPage() {
         </Table>
       </div>
 
-      <Dialog open={openCreate} onOpenChange={setOpenCreate} title="Add User">
+      <Dialog open={openCreate} onOpenChange={setOpenCreate} title={t("users.addUser")}>
         <CreateUserForm
           form={createForm}
           setForm={setCreateForm}
@@ -214,7 +216,7 @@ export default function UsersPage() {
         />
       </Dialog>
 
-      <Dialog open={openEdit} onOpenChange={setOpenEdit} title="Update User">
+      <Dialog open={openEdit} onOpenChange={setOpenEdit} title={t("common.edit")}>
         <EditUserForm form={editForm} setForm={setEditForm} onSubmit={handleEditUser} />
       </Dialog>
     </div>

@@ -13,10 +13,12 @@ import EmptyState from "../components/ui/EmptyState";
 import { ASSET_TYPES, STATUS_OPTIONS } from "../constants/ics";
 import { getSites } from "../api/sites";
 import { formatDate } from "../lib/utils";
+import { useLang } from "../lang";
 
 const PAGE_SIZE = 20;
 
 export default function AssetsPage() {
+  const { t } = useLang();
   const navigate = useNavigate();
   const [filters, setFilters] = useState({ q: "", asset_type: "", status: "", criticality: "" });
   const [page, setPage] = useState(1);
@@ -76,15 +78,15 @@ export default function AssetsPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Assets</h1>
+        <h1 className="text-2xl font-semibold">{t("assets.title")}</h1>
         <Button onClick={() => navigate("/assets/new")}>
-          <Plus className="mr-2 h-4 w-4" /> Register Asset
+          <Plus className="mr-2 h-4 w-4" /> {t("assets.addAsset")}
         </Button>
       </div>
 
       <div className="grid gap-3 md:grid-cols-4">
         <Input
-          placeholder="Search name or tag"
+          placeholder={t("assets.search")}
           value={filters.q}
           onChange={(e) => {
             setFilters((s) => ({ ...s, q: e.target.value }));
@@ -98,7 +100,7 @@ export default function AssetsPage() {
             setPage(1);
           }}
         >
-          <option value="">All Types</option>
+          <option value="">{t("alerts.all")} {t("assets.type")}</option>
           {ASSET_TYPES.map((t, idx) => (
             <option key={`filter-asset-type-${t.value || "unknown"}-${idx}`} value={t.value}>{t.label}</option>
           ))}
@@ -110,7 +112,7 @@ export default function AssetsPage() {
             setPage(1);
           }}
         >
-          <option value="">All Status</option>
+          <option value="">{t("alerts.all")} {t("assets.status")}</option>
           {STATUS_OPTIONS.map((s, idx) => {
             const value = typeof s === "string" ? s : s.value;
             const label = typeof s === "string" ? s : s.label;
@@ -134,21 +136,21 @@ export default function AssetsPage() {
       <div className="text-sm text-gray-300">{filtered.length} assets</div>
 
       {!filtered.length ? (
-        <EmptyState title="No assets found" description="Try changing search or filters." />
+        <EmptyState title={t("assets.noAssets")} description={t("common.retry")} />
       ) : (
         <div className="rounded-lg border border-ot-border bg-ot-card">
           <Table>
             <THead>
               <TR>
                 <TH>Tag</TH>
-                <TH>Name</TH>
-                <TH>Type</TH>
-                <TH>Protocol</TH>
-                <TH>IP Address</TH>
+                <TH>{t("assets.name")}</TH>
+                <TH>{t("assets.type")}</TH>
+                <TH>{t("assets.protocol")}</TH>
+                <TH>{t("assets.ipAddress")}</TH>
                 <TH>Purdue</TH>
-                <TH>Status</TH>
-                <TH>Last Seen</TH>
-                <TH>Actions</TH>
+                <TH>{t("assets.status")}</TH>
+                <TH>{t("assets.lastSeen")}</TH>
+                <TH>{t("assets.actions")}</TH>
               </TR>
             </THead>
             <TBody>

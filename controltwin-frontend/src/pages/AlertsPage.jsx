@@ -9,8 +9,10 @@ import AlertTable from "../components/alerts/AlertTable";
 import AlertDetailDrawer from "../components/alerts/AlertDetailDrawer";
 import { SEVERITY_LEVELS, ALERT_CATEGORIES } from "../constants/ics";
 import { toast } from "../components/ui/toast";
+import { useLang } from "../lang";
 
 export default function AlertsPage() {
+  const { t } = useLang();
   const [filters, setFilters] = useState({ severity: "", status: "", category: "", q: "" });
   const [selectedIds, setSelectedIds] = useState([]);
   const [detail, setDetail] = useState(null);
@@ -23,7 +25,7 @@ export default function AlertsPage() {
     mutationFn: ({ id, comment }) => acknowledgeAlert(id, comment),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["alerts"] });
-      toast({ title: "Alert acknowledged" });
+      toast({ title: t("alerts.acknowledged") });
     }
   });
 
@@ -31,7 +33,7 @@ export default function AlertsPage() {
     mutationFn: ({ id, payload }) => resolveAlert(id, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["alerts"] });
-      toast({ title: "Alert resolved" });
+      toast({ title: t("alerts.resolved") });
     }
   });
 
@@ -61,27 +63,27 @@ export default function AlertsPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Alerts</h1>
+        <h1 className="text-2xl font-semibold">{t("alerts.title")}</h1>
         <div className="rounded bg-ot-red/20 px-3 py-1 text-sm text-ot-red">
-          Open: {filtered.filter((a) => a.status !== "resolved").length}
+          {t("alerts.active")}: {filtered.filter((a) => a.status !== "resolved").length}
         </div>
       </div>
 
       <div className="grid gap-3 md:grid-cols-5">
         <Select value={filters.severity} onChange={(e) => setFilters((s) => ({ ...s, severity: e.target.value }))}>
-          <option value="">All Severities</option>
+          <option value="">{t("alerts.all")} {t("alerts.severity")}</option>
           {Object.keys(SEVERITY_LEVELS).map((s) => (
             <option key={s} value={s}>{s}</option>
           ))}
         </Select>
         <Select value={filters.status} onChange={(e) => setFilters((s) => ({ ...s, status: e.target.value }))}>
-          <option value="">All Statuses</option>
-          <option value="open">open</option>
-          <option value="acknowledged">acknowledged</option>
-          <option value="resolved">resolved</option>
+          <option value="">{t("alerts.all")} {t("assets.status")}</option>
+          <option value="open">{t("alerts.active")}</option>
+          <option value="acknowledged">{t("alerts.acknowledged")}</option>
+          <option value="resolved">{t("alerts.resolved")}</option>
         </Select>
         <Select value={filters.category} onChange={(e) => setFilters((s) => ({ ...s, category: e.target.value }))}>
-          <option value="">All Categories</option>
+          <option value="">{t("alerts.all")}</option>
           {ALERT_CATEGORIES.map((c, idx) => {
             const value = typeof c === "string" ? c : c.value;
             const label = typeof c === "string" ? c : c.label;
@@ -93,12 +95,12 @@ export default function AlertsPage() {
           })}
         </Select>
         <Input
-          placeholder="Search title"
+          placeholder={t("topbar.search")}
           value={filters.q}
           onChange={(e) => setFilters((s) => ({ ...s, q: e.target.value }))}
         />
         <Button variant="outline" onClick={bulkAck} disabled={!selectedIds.length}>
-          Acknowledge selected ({selectedIds.length})
+          {t("alerts.acknowledge")} ({selectedIds.length})
         </Button>
       </div>
 

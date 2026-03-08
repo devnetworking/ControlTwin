@@ -15,35 +15,37 @@ import {
 } from "lucide-react";
 import { useAlertStore } from "../../store/alertStore";
 import { useAuth } from "../../hooks/useAuth";
-
-const navGroups = [
-  {
-    title: "Operations",
-    items: [
-      { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { to: "/assets", label: "Assets", icon: Cpu },
-      { to: "/assets/new", label: "Ajouter équipement", icon: PlusSquare },
-      { to: "/topology", label: "Topology", icon: Network },
-      { to: "/alerts", label: "Alerts", icon: Bell },
-      { to: "/collectors", label: "Collectors", icon: Radio, minRole: "ot_analyst" }
-    ]
-  },
-  {
-    title: "Administration",
-    minRole: "admin",
-    items: [
-      { to: "/users", label: "Users", icon: Users, minRole: "admin" },
-      { to: "/sites", label: "Sites", icon: Building2, minRole: "admin" },
-      { to: "/settings", label: "Settings", icon: Settings, minRole: "admin" }
-    ]
-  }
-];
+import { useLang } from "../../lang";
 
 const ROLE_ORDER = ["viewer", "readonly", "ot_operator", "ot_analyst", "admin", "super_admin"];
 
 export default function Sidebar({ collapsed, setCollapsed }) {
   const unread = useAlertStore((s) => s.unreadCount);
   const { role } = useAuth();
+  const { t } = useLang();
+
+  const navGroups = [
+    {
+      title: "Operations",
+      items: [
+        { to: "/dashboard", label: t("nav.dashboard"), icon: LayoutDashboard },
+        { to: "/assets", label: t("nav.assets"), icon: Cpu },
+        { to: "/assets/new", label: t("assets.addAsset"), icon: PlusSquare },
+        { to: "/topology", label: t("nav.topology"), icon: Network },
+        { to: "/alerts", label: t("nav.alerts"), icon: Bell },
+        { to: "/collectors", label: t("nav.collectors"), icon: Radio, minRole: "ot_analyst" }
+      ]
+    },
+    {
+      title: "Administration",
+      minRole: "admin",
+      items: [
+        { to: "/users", label: t("nav.users"), icon: Users, minRole: "admin" },
+        { to: "/sites", label: "Sites", icon: Building2, minRole: "admin" },
+        { to: "/settings", label: t("nav.settings"), icon: Settings, minRole: "admin" }
+      ]
+    }
+  ];
 
   const canAccess = (minRole) => !minRole || ROLE_ORDER.indexOf(role) >= ROLE_ORDER.indexOf(minRole);
 

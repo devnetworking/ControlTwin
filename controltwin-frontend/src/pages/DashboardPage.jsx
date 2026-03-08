@@ -11,9 +11,11 @@ import SeverityBadge from "../components/ui/SeverityBadge";
 import { Table, TBody, TD, TH, THead, TR } from "../components/ui/table";
 import { useSiteContext } from "../hooks/useSiteContext";
 import { formatDate } from "../lib/utils";
+import { useLang } from "../lang";
 
 export default function DashboardPage() {
   const { selectedSite } = useSiteContext();
+  const { t } = useLang();
 
   const { data: assetsData } = useQuery({
     queryKey: ["assets-dashboard", selectedSite?.id],
@@ -56,40 +58,40 @@ export default function DashboardPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-semibold">Operations Dashboard</h1>
+        <h1 className="text-2xl font-semibold">{t("dashboard.title")}</h1>
         <p className="text-sm text-gray-300">{selectedSite?.name || "All Sites"}</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard icon={<Database className="h-5 w-5" />} title="Total Assets" value={summary.total} iconColor="text-ot-blue" />
+        <MetricCard icon={<Database className="h-5 w-5" />} title={t("dashboard.totalAssets")} value={summary.total} iconColor="text-ot-blue" />
         <MetricCard
           icon={<Activity className="h-5 w-5" />}
-          title="Online Assets"
+          title={t("dashboard.online")}
           value={summary.onlinePct}
           unit="%"
           iconColor={summary.onlinePct > 90 ? "text-ot-green" : summary.onlinePct >= 60 ? "text-ot-orange" : "text-ot-red"}
         />
         <MetricCard
           icon={<Bell className="h-5 w-5" />}
-          title="Open Alerts"
+          title={t("dashboard.activeAlerts")}
           value={summary.open}
           iconColor={summary.critical > 0 ? "text-ot-red" : "text-ot-orange"}
         />
-        <MetricCard icon={<AlertTriangle className="h-5 w-5" />} title="Critical Alerts" value={summary.critical} iconColor="text-ot-red" />
+        <MetricCard icon={<AlertTriangle className="h-5 w-5" />} title={t("alerts.critical")} value={summary.critical} iconColor="text-ot-red" />
       </div>
 
       <TimeSeriesChart data={chartData} loading={tsLoading} />
       <AlertBarChart data={trendData} />
 
       <div className="rounded-lg border border-ot-border bg-ot-card p-4">
-        <h3 className="mb-3 text-sm font-semibold">Recent Alerts</h3>
+        <h3 className="mb-3 text-sm font-semibold">{t("dashboard.recentAlerts")}</h3>
         <Table>
           <THead>
             <TR>
-              <TH>Severity</TH>
-              <TH>Title</TH>
-              <TH>Asset</TH>
-              <TH>Triggered</TH>
+              <TH>{t("alerts.severity")}</TH>
+              <TH>{t("alerts.message")}</TH>
+              <TH>{t("alerts.asset")}</TH>
+              <TH>{t("alerts.timestamp")}</TH>
             </TR>
           </THead>
           <TBody>
