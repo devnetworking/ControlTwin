@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useCreateAsset } from "../hooks/useAssets";
@@ -15,7 +15,8 @@ const INITIAL_ASSET = {
   protocol: "modbus_tcp",
   site_id: "",
   ip_address: "",
-  port: ""
+  port: "",
+  purdue_level: "0"
 };
 
 export default function AssetCreatePage() {
@@ -25,6 +26,24 @@ export default function AssetCreatePage() {
   const [sites, setSites] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
   const [newAsset, setNewAsset] = useState(INITIAL_ASSET);
+
+  const protocolOptions = useMemo(
+    () =>
+      new Set([
+        "modbus_tcp",
+        "modbus_rtu",
+        "opcua",
+        "dnp3",
+        "iec61850",
+        "iccp",
+        "ethernetip",
+        "profinet",
+        "bacnet",
+        "mqtt",
+        "other"
+      ]),
+    []
+  );
 
   useEffect(() => {
     (async () => {
@@ -42,21 +61,47 @@ export default function AssetCreatePage() {
     if (!newAsset.tag || !newAsset.name || !newAsset.asset_type || !newAsset.site_id || !newAsset.protocol) return;
     setErrorMessage("");
 
+    const normalizedProtocol = String(newAsset.protocol).trim().toLowerCase();
+    if (!protocolOptions.has(normalizedProtocol)) {
+      setErrorMessage("Invalid protocol value.");
+      return;
+    }
+
     const payload = {
       ...newAsset,
-      port: newAsset.port ? Number(newAsset.port) : undefined,
-      ip_address: newAsset.ip_address || undefined
+      tag: newAsset.tag.trim(),
+      name: newAsset.name.trim(),
+      site_id: String(newAsset.site_id).trim(),
+      protocol: normalizedProtocol,
+      asset_type: String(newAsset.asset_type).trim(),
+      purdue_level: newAsset.purdue_level !== "" ? Number(newAsset.purdue_level) : 0,
+      port: newAsset.port !== "" ? Number(newAsset.port) : undefined,
+      ip_address: newAsset.ip_address?.trim() ? newAsset.ip_address.trim() : undefined
     };
 
     try {
       await createAsset.mutateAsync(payload);
       navigate("/assets");
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status === 422) {
-        setErrorMessage("Invalid asset data. Please check required fields and formats.");
-      } else {
-        setErrorMessage("Failed to create asset. Please try again.");
+      if (axios.isAxiosError(error)) {
+        const detail = error.response?.data?.detail;
+        if (typeof detail === "string" && detail.trim()) {
+          setErrorMessage(detail);
+          return;
+        }
+        if (Array.isArray(detail) && detail.length > 0) {
+          const first = detail[0];
+          if (first?.msg) {
+            setErrorMessage(first.msg);
+            return;
+          }
+        }
+        if (error.response?.status === 422) {
+          setErrorMessage("Invalid asset data. Please check required fields and formats.");
+          return;
+        }
       }
+      setErrorMessage("Failed to create asset. Please try again.");
     }
   }
 
@@ -98,10 +143,16 @@ export default function AssetCreatePage() {
             onChange={(e) => setNewAsset((s) => ({ ...s, protocol: e.target.value }))}
           >
             <option value="modbus_tcp">modbus_tcp</option>
+            <option value="modbus_rtu">modbus_rtu</option>
             <option value="opcua">opcua</option>
+            <option value="dnp3">dnp3</option>
+            <option value="iec61850">iec61850</option>
+            <option value="iccp">iccp</option>
+            <option value="ethernetip">ethernetip</option>
+            <option value="profinet">profinet</option>
+            <option value="bacnet">bacnet</option>
             <option value="mqtt">mqtt</option>
-            <option value="http">http</option>
-            <option value="simulated">simulated</option>
+            <option value="other">other</option>
           </Select>
           <Input
             placeholder="IP Address (optionnel)"
@@ -113,6 +164,15 @@ export default function AssetCreatePage() {
             type="number"
             value={newAsset.port}
             onChange={(e) => setNewAsset((s) => ({ ...s, port: e.target.value }))}
+          />
+          <Input
+            placeholder="Purdue Level (0-4)"
+            type="number"
+            min="0"
+            max="4"
+            value={newAsset.purdue_level}
+            onChange={(e) => setNewAsset((s) => ({ ...s, purdue_level: e.target.value }))}
+            required
           />
           <Select
             value={newAsset.site_id}

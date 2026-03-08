@@ -9,8 +9,9 @@ from datetime import datetime, timezone
 from fastapi import HTTPException, status
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from pymodbus.client import ModbusTcpClient
 
-from app.models.models import Asset
+from app.models.models import Asset, AssetStatus
 from app.schemas.schemas import AssetCreate, AssetUpdate
 
 
@@ -21,16 +22,50 @@ class AssetService:
         self.session = session
 
     @staticmethod
-    def _detect_connectivity_status(ip_address: str | None, port: int | None) -> tuple[str, datetime | None]:
-        """Detect real connectivity using TCP socket and return (status, last_seen)."""
+    def _detect_connectivity_status(
+        protocol: str | None, ip_address: str | None, port: int | None
+    ) -> tuple[str, datetime | None]:
+        """Detect connectivity status with protocol-aware checks."""
         if not ip_address or not port:
             return "unknown", None
 
+        protocol_value = (protocol or "").lower()
+
+        # Protocol-aware check for Modbus TCP: only online when a real Modbus request succeeds.
+        if protocol_value == "modbus_tcp":
+            client = ModbusTcpClient(host=ip_address, port=port, timeout=1.5)
+            try:
+                if not client.connect():
+                    return "offline", None
+                rr = client.read_holding_registers(address=0, count=1, slave=1)
+                if rr.isError():
+                    return "offline", None
+                return "online", datetime.now(timezone.utc)
+            except Exception:
+                return "offline", None
+            finally:
+                try:
+                    client.close()
+                except Exception:
+                    pass
+
+        # Fallback for other protocols: basic TCP reachability.
         try:
             with socket.create_connection((ip_address, port), timeout=1.5):
                 return "online", datetime.now(timezone.utc)
         except OSError:
             return "offline", None
+
+    async def _refresh_asset_runtime_status(self, asset: Asset) -> None:
+        """Refresh asset runtime status from live protocol check and update model in memory."""
+        detected_status, detected_last_seen = self._detect_connectivity_status(
+            str(asset.protocol), asset.ip_address, asset.port
+        )
+
+        new_status = AssetStatus(detected_status)
+        if asset.status != new_status:
+            asset.status = new_status
+        asset.last_seen = detected_last_seen
 
     async def list_assets(
         self,
@@ -57,7 +92,16 @@ class AssetService:
 
         stmt = select(Asset).where(and_(*filters)).offset((page - 1) * size).limit(size)
         result = await self.session.execute(stmt)
-        return list(result.scalars().all())
+        assets = list(result.scalars().all())
+
+        for asset in assets:
+            await self._refresh_asset_runtime_status(asset)
+
+        # Flush updates without expiring loaded instances to avoid lazy reload in response mapping.
+        if assets:
+            await self.session.flush()
+
+        return assets
 
     async def get_or_404(self, asset_id: uuid.UUID) -> Asset:
         """Get asset or raise 404."""
@@ -65,6 +109,10 @@ class AssetService:
         asset = result.scalar_one_or_none()
         if not asset:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Asset not found")
+
+        await self._refresh_asset_runtime_status(asset)
+        # Flush updates while keeping loaded state intact for response serialization.
+        await self.session.flush()
         return asset
 
     async def create_asset(self, payload: AssetCreate) -> Asset:
@@ -79,7 +127,13 @@ class AssetService:
         if duplicate.scalar_one_or_none():
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Asset tag already exists in site")
 
-        detected_status, detected_last_seen = self._detect_connectivity_status(payload.ip_address, payload.port)
+        detected_status, detected_last_seen = self._detect_connectivity_status(
+            str(payload.protocol), payload.ip_address, payload.port
+        )
+
+        # Ensure enum-typed columns always receive enum members (not raw strings)
+        # to avoid DB/ORM adaptation issues that can surface as HTTP 500 on create.
+        asset_status = AssetStatus(detected_status)
 
         asset = Asset(
             site_id=payload.site_id,
@@ -96,7 +150,7 @@ class AssetService:
             firmware_version=payload.firmware_version,
             purdue_level=payload.purdue_level,
             criticality=payload.criticality,
-            status=detected_status,
+            status=asset_status,
             metadata_json=payload.metadata,
             is_active=True,
             last_seen=detected_last_seen,

@@ -152,7 +152,7 @@ class AssetBase(BaseModel):
     vendor: str | None = None
     model: str | None = None
     firmware_version: str | None = None
-    purdue_level: int | None = Field(default=None, ge=0, le=4)
+    purdue_level: int = Field(default=0, ge=0, le=4)
     criticality: Criticality = Criticality.MEDIUM
     status: AssetStatus = AssetStatus.UNKNOWN
     metadata: dict[str, Any] = Field(default_factory=dict)

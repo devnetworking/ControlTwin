@@ -16,3 +16,25 @@
 - [ ] Replace remaining hardcoded strings in shared components (TopBar, AlertTable, AlertDetailDrawer, TimeSeriesChart, AlertBarChart, others).
 - [ ] Run frontend build validation after full coverage.
 - [ ] Mark all tasks complete.
+
+## Fix asset creation failure (/assets/new)
+
+- [x] Inspect and normalize payload in `controltwin-frontend/src/pages/AssetCreatePage.jsx` (site_id UUID string, optional fields).
+- [x] Improve API error rendering to display backend validation detail when available.
+- [x] Run frontend validation (`npm run build`).
+- [x] Mark this fix section complete.
+
+## Fix Live Data Points empty in Asset detail
+
+- [ ] Update `controltwin-frontend/src/pages/AssetDetailPage.jsx` to request timeseries with `data_point_ids` + `start/stop`.
+- [ ] Add explicit empty state in Live Data Points section when no datapoints exist.
+- [ ] Run frontend validation (`npm run build`).
+- [ ] Mark this section complete.
+
+## Add alerts bell mini dropdown in TopBar
+
+- [ ] Update `controltwin-frontend/src/components/layout/TopBar.jsx` to open a mini dropdown on bell click.
+- [ ] Show recent alerts with severity, title, and triggered_at.
+- [ ] Add empty state and `Mark all read` action.
+- [ ] Run frontend validation (`npm run build`).
+- [ ] Mark this section complete.

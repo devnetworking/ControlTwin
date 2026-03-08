@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getAsset } from "../api/assets";
@@ -29,9 +29,26 @@ export default function AssetDetailPage() {
     refetchInterval: 30000
   });
 
+  const datapoints = datapointsData?.items || datapointsData || [];
+  const dataPointIds = useMemo(
+    () => datapoints.map((dp) => dp.id).filter(Boolean),
+    [datapoints]
+  );
+
   const { data: tsData } = useQuery({
-    queryKey: ["asset-spark", id],
-    queryFn: () => queryTimeseries({ asset_id: id, range: "1h", limit: 20 }),
+    queryKey: ["asset-spark", id, dataPointIds],
+    queryFn: () => {
+      const stop = new Date();
+      const start = new Date(stop.getTime() - 60 * 60 * 1000);
+      return queryTimeseries({
+        data_point_ids: dataPointIds,
+        start: start.toISOString(),
+        stop: stop.toISOString(),
+        aggregate_window: "1m",
+        aggregate_fn: "mean"
+      });
+    },
+    enabled: dataPointIds.length > 0,
     refetchInterval: 30000
   });
 
@@ -42,7 +59,6 @@ export default function AssetDetailPage() {
 
   if (isLoading) return <LoadingSpinner />;
 
-  const datapoints = datapointsData?.items || datapointsData || [];
   const alerts = alertsData?.items || alertsData || [];
   const spark = tsData?.data || tsData || [];
 
@@ -75,23 +91,27 @@ export default function AssetDetailPage() {
           <Card>
             <CardHeader><CardTitle>Live Data Points</CardTitle></CardHeader>
             <CardContent className="grid gap-3 md:grid-cols-2">
-              {datapoints.map((dp) => (
-                <div key={dp.id} className="rounded border border-ot-border p-3">
-                  <div className="font-mono text-xs text-ot-blue">{dp.tag}</div>
-                  <div className="text-sm">{dp.name}</div>
-                  <div className="font-mono text-lg">
-                    {formatValue(dp.latest_value)} {dp.unit || ""}
+              {datapoints.length === 0 ? (
+                <div className="text-sm text-gray-300">No live datapoints available for this asset.</div>
+              ) : (
+                datapoints.map((dp) => (
+                  <div key={dp.id} className="rounded border border-ot-border p-3">
+                    <div className="font-mono text-xs text-ot-blue">{dp.tag}</div>
+                    <div className="text-sm">{dp.name}</div>
+                    <div className="font-mono text-lg">
+                      {formatValue(dp.latest_value)} {dp.unit || ""}
+                    </div>
+                    <div className="text-xs text-gray-300">Last updated: {formatDate(dp.last_updated)}</div>
+                    <div className="mt-2 h-16">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={spark}>
+                          <Line type="monotone" dataKey={dp.tag} stroke="#00A8E8" dot={false} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
-                  <div className="text-xs text-gray-300">Last updated: {formatDate(dp.last_updated)}</div>
-                  <div className="mt-2 h-16">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={spark}>
-                        <Line type="monotone" dataKey={dp.tag} stroke="#00A8E8" dot={false} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </CardContent>
           </Card>
         </div>
