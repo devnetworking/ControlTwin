@@ -73,6 +73,16 @@ class UserCreate(UserBase):
     password: str = Field(min_length=12, max_length=128)
 
 
+class UserUpdate(BaseModel):
+    """User partial update schema."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    email: EmailStr | None = None
+    role: UserRole | None = None
+    is_active: bool | None = None
+
+
 class UserResponse(UserBase):
     """User response schema."""
 
@@ -100,6 +110,20 @@ class SiteBase(BaseModel):
 
 class SiteCreate(SiteBase):
     """Site creation schema."""
+
+
+class SiteUpdate(BaseModel):
+    """Site update schema (partial)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    name: str | None = Field(default=None, min_length=2, max_length=128)
+    description: str | None = None
+    location: str | None = None
+    sector: Sector | None = None
+    timezone: str | None = None
+    metadata: dict[str, Any] | None = None
+    is_active: bool | None = None
 
 
 class SiteResponse(SiteBase):

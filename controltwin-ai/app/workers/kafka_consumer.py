@@ -1,96 +1,93 @@
+"""Async Kafka consumer for datapoints ingestion and anomaly alert publishing."""
+
 from __future__ import annotations
 
 import asyncio
 import json
 from typing import Any
 
-import redis.asyncio as redis
 from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
+import structlog
 
 from app.anomaly.detector import AnomalyDetector
 from app.core.config import get_settings
-from app.core.logging import get_logger
-from app.twin_state.engine import TwinStateEngine
+from app.twin_state.engine import DigitalTwinEngine
 
 
-class ICSDataConsumer:
+class KafkaDatapointConsumer:
+    """Consumes datapoints, updates digital twin, detects anomalies, and publishes alerts."""
+
     def __init__(self) -> None:
+        """Initialize Kafka consumer/producer and service engines."""
         self.settings = get_settings()
-        self.logger = get_logger("controltwin-ai.kafka-consumer")
+        self.logger = structlog.get_logger("controltwin-ai.kafka")
+        self.twin_engine = DigitalTwinEngine()
+        self.anomaly_detector = AnomalyDetector()
+
         self.consumer = AIOKafkaConsumer(
-            self.settings.kafka_topic_datapoints,
-            bootstrap_servers=self.settings.kafka_bootstrap_servers,
-            group_id="controltwin-ai",
-            value_deserializer=lambda m: json.loads(m.decode("utf-8")),
+            self.settings.KAFKA_TOPIC_DATAPOINTS,
+            bootstrap_servers=self.settings.KAFKA_BOOTSTRAP_SERVERS,
+            value_deserializer=lambda v: json.loads(v.decode("utf-8")),
+            group_id="controltwin-ai-consumer",
+            auto_offset_reset="latest",
+            enable_auto_commit=True,
         )
         self.producer = AIOKafkaProducer(
-            bootstrap_servers=self.settings.kafka_bootstrap_servers,
+            bootstrap_servers=self.settings.KAFKA_BOOTSTRAP_SERVERS,
             value_serializer=lambda v: json.dumps(v).encode("utf-8"),
         )
-        self.redis = redis.from_url(self.settings.redis_url, decode_responses=True)
-        self.twin = TwinStateEngine()
-        self.detector = AnomalyDetector()
 
     async def start(self) -> None:
+        """Start consuming datapoints indefinitely."""
         await self.consumer.start()
         await self.producer.start()
-        await self.twin.init_db()
-        self.logger.info("kafka consumer started", extra={"event": "consumer_start"})
+        self.logger.info("kafka_consumer_started", topic=self.settings.KAFKA_TOPIC_DATAPOINTS)
+
         try:
-            async for msg in self.consumer:
-                await self.process_message(msg.value)
+            async for message in self.consumer:
+                await self._handle_message(message.value)
+        except Exception as exc:
+            self.logger.error("kafka_consumer_failed", error=str(exc))
         finally:
             await self.consumer.stop()
             await self.producer.stop()
-            await self.redis.close()
+            self.logger.info("kafka_consumer_stopped")
 
-    async def process_message(self, message: dict[str, Any]) -> None:
-        asset_id = str(message.get("asset_id", ""))
-        data_point_id = str(message.get("data_point_id", ""))
-        tag = str(message.get("tag", data_point_id))
-        value = float(message.get("value", 0.0))
-        timestamp = message.get("timestamp")
-        quality = message.get("quality", "good")
-        asset_type = message.get("asset_type", "default")
+    async def _handle_message(self, payload: dict[str, Any]) -> None:
+        """Process one datapoint payload."""
+        try:
+            asset_id = str(payload.get("asset_id", ""))
+            if not asset_id:
+                return
 
-        if not asset_id or not data_point_id:
-            return
+            datapoint = {
+                "tag": payload.get("tag", payload.get("data_point_id", "unknown")),
+                "value": payload.get("value", 0.0),
+                "timestamp": payload.get("timestamp"),
+                "quality": payload.get("quality", "good"),
+            }
 
-        await self.twin.update_reported(asset_id=asset_id, data_point_tag=tag, value=value, timestamp=timestamp, quality=quality)
+            await self.twin_engine.sync_asset(asset_id=asset_id, datapoints=[datapoint])
+            result = await self.anomaly_detector.detect(asset_id=asset_id, datapoints=[datapoint])
 
-        det = await self.detector.process_datapoint({
-            "asset_id": asset_id,
-            "data_point_id": data_point_id,
-            "tag": tag,
-            "value": value,
-            "timestamp": timestamp,
-            "quality": quality,
-            "asset_type": asset_type,
-            "alarm_low_low": message.get("alarm_low_low"),
-            "alarm_low": message.get("alarm_low"),
-            "alarm_high": message.get("alarm_high"),
-            "alarm_high_high": message.get("alarm_high_high"),
-        })
-
-        await self.redis.rpush(f"features:{data_point_id}", value)
-        await self.redis.ltrim(f"features:{data_point_id}", -60, -1)
-
-        if det.get("is_anomaly"):
-            await self.producer.send_and_wait(
-                self.settings.kafka_topic_alerts,
-                {
-                    "source": "controltwin-ai",
+            if result.is_anomaly:
+                alert_payload = {
                     "asset_id": asset_id,
-                    "data_point_id": data_point_id,
-                    "final_score": det.get("final_score"),
-                    "mitre_technique_id": det.get("mitre_technique", {}).get("id"),
-                    "timestamp": timestamp,
-                },
-            )
+                    "source": "controltwin-ai",
+                    "score": result.score,
+                    "confidence": result.confidence,
+                    "mitre_technique": result.technique,
+                    "message": "Anomaly detected from streaming datapoint.",
+                }
+                await self.producer.send_and_wait(self.settings.KAFKA_TOPIC_ALERTS, alert_payload)
+                self.logger.info("anomaly_alert_published", asset_id=asset_id, technique=result.technique)
+        except Exception as exc:
+            self.logger.error("kafka_message_processing_failed", error=str(exc), payload=payload)
 
 
 async def main() -> None:
-    consumer = ICSDataConsumer()
+    """Run the Kafka datapoint consumer."""
+    consumer = KafkaDatapointConsumer()
     await consumer.start()
 
 

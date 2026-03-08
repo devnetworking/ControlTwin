@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import socket
 import uuid
 from datetime import datetime, timezone
 
@@ -18,6 +19,18 @@ class AssetService:
 
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
+
+    @staticmethod
+    def _detect_connectivity_status(ip_address: str | None, port: int | None) -> tuple[str, datetime | None]:
+        """Detect real connectivity using TCP socket and return (status, last_seen)."""
+        if not ip_address or not port:
+            return "unknown", None
+
+        try:
+            with socket.create_connection((ip_address, port), timeout=1.5):
+                return "online", datetime.now(timezone.utc)
+        except OSError:
+            return "offline", None
 
     async def list_assets(
         self,
@@ -66,6 +79,8 @@ class AssetService:
         if duplicate.scalar_one_or_none():
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Asset tag already exists in site")
 
+        detected_status, detected_last_seen = self._detect_connectivity_status(payload.ip_address, payload.port)
+
         asset = Asset(
             site_id=payload.site_id,
             parent_id=payload.parent_id,
@@ -81,9 +96,10 @@ class AssetService:
             firmware_version=payload.firmware_version,
             purdue_level=payload.purdue_level,
             criticality=payload.criticality,
-            status=payload.status,
+            status=detected_status,
             metadata_json=payload.metadata,
             is_active=True,
+            last_seen=detected_last_seen,
         )
         self.session.add(asset)
         await self.session.commit()

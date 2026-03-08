@@ -1,34 +1,17 @@
-fastapi==0.115.6
-uvicorn[standard]==0.34.0
-sqlalchemy[asyncio]==2.0.36
-asyncpg==0.30.0
-influxdb-client==1.48.0
-pydantic==2.10.4
-pydantic-settings==2.7.0
-# ML
-scikit-learn==1.6.0
-torch==2.5.1
-numpy==2.2.1
-pandas==2.2.3
-prophet==1.1.6
-scipy==1.14.1
-mlflow==2.17.0
-joblib==1.4.2
-# LLM / RAG
-ollama==0.4.4
-langchain==0.3.10
-langchain-community==0.3.10
-langchain-ollama==0.2.1
-chromadb==0.5.23
-# Async / Messaging
-aiokafka==0.12.0
-aioredis==2.0.1
-redis==5.2.1
-celery==5.4.0
-APScheduler==3.10.4
-httpx==0.27.2
-# Utils
-python-dotenv==1.0.1
-tenacity==9.0.0
-pytest==8.3.4
-pytest-asyncio==0.24.0
+fastapi
+uvicorn[standard]
+pydantic-settings
+aioredis
+aiokafka
+chromadb-client
+ollama
+scikit-learn
+torch
+numpy
+pandas
+prophet
+mlflow
+structlog
+httpx
+celery
+pytest

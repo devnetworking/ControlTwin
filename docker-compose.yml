@@ -1,0 +1,149 @@
+services:
+  api:
+    build:
+      context: ./controltwin-backend
+      dockerfile: docker/Dockerfile
+    container_name: controltwin_api
+    env_file:
+      - ./controltwin-backend/.env
+    environment:
+      PYTHONPATH: /app
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      influxdb:
+        condition: service_started
+      kafka:
+        condition: service_started
+    networks:
+      - controltwin_net
+      - ot_dmz
+
+  frontend:
+    build:
+      context: ./controltwin-frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api/v1
+    container_name: controltwin_frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+    networks:
+      - controltwin_net
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: controltwin_postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-controltwin}
+      POSTGRES_USER: ${POSTGRES_USER:-controltwin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-controltwin}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./controltwin-backend/docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-controltwin} -d ${POSTGRES_DB:-controltwin}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - controltwin_net
+
+  influxdb:
+    image: influxdb:2.7-alpine
+    container_name: controltwin_influxdb
+    ports:
+      - "8086:8086"
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUXDB_ADMIN_USER:-admin}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUXDB_ADMIN_PASSWORD:-adminadmin}
+      DOCKER_INFLUXDB_INIT_ORG: ${INFLUXDB_ORG:-controltwin}
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUXDB_BUCKET_REALTIME:-ics_realtime}
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUXDB_TOKEN:-controltwin-influx-token}
+    volumes:
+      - influx_data:/var/lib/influxdb2
+    networks:
+      - controltwin_net
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.7.0
+    container_name: controltwin_zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - controltwin_net
+
+  kafka:
+    image: confluentinc/cp-kafka:7.7.0
+    container_name: controltwin_kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    networks:
+      - controltwin_net
+
+  kafka-init:
+    image: confluentinc/cp-kafka:7.7.0
+    container_name: controltwin_kafka_init
+    depends_on:
+      - kafka
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic ics.datapoints --partitions 6 --replication-factor 1 &&
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic ics.alerts --partitions 3 --replication-factor 1 &&
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic ics.events --partitions 3 --replication-factor 1
+      "
+    networks:
+      - controltwin_net
+
+  mqtt:
+    image: hivemq/hivemq-ce:2024.3
+    container_name: controltwin_mqtt
+    ports:
+      - "1883:1883"
+      - "8883:8883"
+    networks:
+      - controltwin_net
+      - ot_dmz
+
+  pgadmin:
+    image: dpage/pgadmin4:8.12
+    container_name: controltwin_pgadmin
+    profiles: ["dev"]
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@controltwin.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - controltwin_net
+
+volumes:
+  pg_data:
+  influx_data:
+
+networks:
+  controltwin_net:
+    driver: bridge
+  ot_dmz:
+    driver: bridge

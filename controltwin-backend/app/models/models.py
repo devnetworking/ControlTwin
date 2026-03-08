@@ -196,15 +196,7 @@ class Site(Base):
     name: Mapped[str] = mapped_column(String(128), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     location: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    sector: Mapped[Sector] = mapped_column(
-        Enum(
-            Sector,
-            name="sector",
-            values_callable=lambda enum_cls: [member.value for member in enum_cls],
-        ),
-        nullable=False,
-        default=Sector.GENERIC,
-    )
+    sector: Mapped[str] = mapped_column(String(30), nullable=False, default=Sector.GENERIC.value)
     timezone: Mapped[str] = mapped_column(String(64), nullable=False, default="UTC")
     metadata_json: Mapped[dict] = mapped_column("metadata", JSON, default=dict, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)

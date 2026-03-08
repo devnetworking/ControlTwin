@@ -1,103 +1,154 @@
-"""ControlTwin AI — API Router
-Aggregates all AI service endpoints under /api/v1/ai/
-"""
+"""API router for ControlTwin AI endpoints."""
 
-import os
-import subprocess
-import time
+from __future__ import annotations
+
+from typing import Any
+
+import redis.asyncio as aioredis
+import structlog
+from chromadb import HttpClient
 from fastapi import APIRouter
-from app.api import twin_state, anomaly, predictive, remediation, simulation
+from pydantic import BaseModel, Field
+import ollama
 
-START_TIME = time.monotonic()
+from app.anomaly.detector import AnomalyDetector
+from app.core.config import get_settings
+from app.remediation.engine import RemediationEngine
+from app.twin_state.engine import DigitalTwinEngine
 
-ai_router = APIRouter(prefix="/ai", tags=["ControlTwin AI"])
+settings = get_settings()
+logger = structlog.get_logger("controltwin-ai.api")
 
-ai_router.include_router(
-    twin_state.router,
-    prefix="/twin-state",
-    tags=["Twin State Engine"],
-)
-ai_router.include_router(
-    anomaly.router,
-    prefix="/anomaly",
-    tags=["Anomaly Detection"],
-)
-ai_router.include_router(
-    predictive.router,
-    prefix="/predictive",
-    tags=["Predictive Maintenance"],
-)
-ai_router.include_router(
-    remediation.router,
-    prefix="/remediation",
-    tags=["AI Remediation"],
-)
-ai_router.include_router(
-    simulation.router,
-    prefix="/simulation",
-    tags=["Twin Simulation"],
-)
+router = APIRouter()
+twin_engine = DigitalTwinEngine()
+anomaly_detector = AnomalyDetector()
+remediation_engine = RemediationEngine()
 
 
-def _check_tcp(host: str, port: int) -> bool:
-    import socket
+class TwinSyncRequest(BaseModel):
+    """Request body for twin synchronization."""
 
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(0.5)
+    asset_id: str = Field(..., min_length=1)
+    datapoints: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class TwinStateResponse(BaseModel):
+    """Response body for twin state retrieval."""
+
+    asset_id: str
+    state: dict[str, Any]
+
+
+class AnomalyDetectRequest(BaseModel):
+    """Request body for anomaly detection."""
+
+    asset_id: str
+    datapoints: list[dict[str, Any]]
+
+
+class AnomalyDetectResponse(BaseModel):
+    """Response body for anomaly detection."""
+
+    score: float
+    is_anomaly: bool
+    confidence: float
+    technique: str
+
+
+class RemediationSuggestRequest(BaseModel):
+    """Request body for remediation suggestions."""
+
+    alert: dict[str, Any]
+
+
+class RemediationSuggestResponse(BaseModel):
+    """Response body for remediation suggestions."""
+
+    steps: list[str]
+    mitre_ref: str
+    confidence: float
+    llm_explanation: str
+
+
+@router.post("/twin/sync")
+async def sync_twin(request: TwinSyncRequest) -> dict[str, Any]:
+    """Sync an asset twin state with incoming datapoints."""
     try:
-        return sock.connect_ex((host, port)) == 0
-    finally:
-        sock.close()
+        return await twin_engine.sync_asset(asset_id=request.asset_id, datapoints=request.datapoints)
+    except Exception as exc:
+        logger.error("sync_twin_failed", error=str(exc))
+        return {"asset_id": request.asset_id, "synced_points": 0, "error": str(exc)}
 
 
-def _ollama_models() -> list:
+@router.get("/twin/{asset_id}/state", response_model=TwinStateResponse)
+async def get_twin_state(asset_id: str) -> TwinStateResponse:
+    """Get current digital twin state for an asset."""
+    state = await twin_engine.get_twin_state(asset_id)
+    return TwinStateResponse(asset_id=asset_id, state=state.get("state", {}))
+
+
+@router.post("/anomaly/detect", response_model=AnomalyDetectResponse)
+async def detect_anomaly(request: AnomalyDetectRequest) -> AnomalyDetectResponse:
+    """Run anomaly detection for a given asset and datapoints."""
+    result = await anomaly_detector.detect(asset_id=request.asset_id, datapoints=request.datapoints)
+    return AnomalyDetectResponse(
+        score=result.score,
+        is_anomaly=result.is_anomaly,
+        confidence=result.confidence,
+        technique=result.technique,
+    )
+
+
+@router.get("/anomaly/{asset_id}/history")
+async def anomaly_history(asset_id: str) -> dict[str, Any]:
+    """Return anomaly history stored in Redis for an asset."""
     try:
-        result = subprocess.run(
-            ["ollama", "list"],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if result.returncode != 0:
-            return []
-        lines = [line.strip() for line in result.stdout.splitlines() if line.strip()]
-        if not lines:
-            return []
-        models = []
-        for line in lines[1:]:
-            parts = line.split()
-            if parts:
-                models.append(parts[0])
-        return models
+        redis_client = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
+        items = await redis_client.lrange(f"anomaly:history:{asset_id}", 0, 99)
+        await redis_client.close()
+        return {"asset_id": asset_id, "history": items}
+    except Exception as exc:
+        return {"asset_id": asset_id, "history": [], "error": str(exc)}
+
+
+@router.post("/remediation/suggest", response_model=RemediationSuggestResponse)
+async def suggest_remediation(request: RemediationSuggestRequest) -> RemediationSuggestResponse:
+    """Generate AI remediation suggestions for an alert."""
+    suggestion = await remediation_engine.suggest(request.alert)
+    return RemediationSuggestResponse(
+        steps=suggestion.steps,
+        mitre_ref=suggestion.mitre_ref,
+        confidence=suggestion.confidence,
+        llm_explanation=suggestion.llm_explanation,
+    )
+
+
+@router.get("/status")
+async def status() -> dict[str, Any]:
+    """Health status check for Redis, ChromaDB, and Ollama."""
+    health = {"redis": False, "chromadb": False, "ollama": False}
+    try:
+        redis_client = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
+        await redis_client.ping()
+        await redis_client.close()
+        health["redis"] = True
     except Exception:
-        return []
+        health["redis"] = False
+
+    try:
+        chroma_client = HttpClient(host="localhost", port=8010)
+        chroma_client.heartbeat()
+        health["chromadb"] = True
+    except Exception:
+        health["chromadb"] = False
+
+    try:
+        ollama.list()
+        health["ollama"] = True
+    except Exception:
+        health["ollama"] = False
+
+    return {"status": "green" if all(health.values()) else "degraded", "components": health}
 
 
-@ai_router.get("/status")
-async def ai_status():
-    ollama_host = os.environ.get("OLLAMA_HOST", "127.0.0.1")
-    ollama_port = int(os.environ.get("OLLAMA_PORT", "11434"))
-    chroma_host = os.environ.get("CHROMA_HOST", "127.0.0.1")
-    chroma_port = int(os.environ.get("CHROMA_PORT", "8000"))
-    redis_host = os.environ.get("REDIS_HOST", "127.0.0.1")
-    redis_port = int(os.environ.get("REDIS_PORT", "6379"))
-
-    models = _ollama_models()
-    components = {
-        "ollama": _check_tcp(ollama_host, ollama_port),
-        "chromadb": _check_tcp(chroma_host, chroma_port),
-        "redis": _check_tcp(redis_host, redis_port),
-        "ml_models_loaded": len(models) > 0,
-    }
-
-    return {
-        "service": "controltwin-ai",
-        "version": "1.0.0",
-        "components": components,
-        "models_available": models,
-        "uptime_seconds": round(time.monotonic() - START_TIME, 3),
-    }
-
-
-router = ai_router
-api_router = ai_router
+api_router = router

@@ -10,6 +10,8 @@ import AlertsPage from "./pages/AlertsPage";
 import CollectorsPage from "./pages/CollectorsPage";
 import UsersPage from "./pages/UsersPage";
 import SettingsPage from "./pages/SettingsPage";
+import SitesPage from "./pages/SitesPage";
+import AssetCreatePage from "./pages/AssetCreatePage";
 
 function ProtectedLayout({ children, minRole }) {
   return (
@@ -49,6 +51,14 @@ export default function App() {
         }
       />
       <Route
+        path="/assets/new"
+        element={
+          <ProtectedLayout>
+            <AssetCreatePage />
+          </ProtectedLayout>
+        }
+      />
+      <Route
         path="/topology"
         element={
           <ProtectedLayout>
@@ -77,6 +87,14 @@ export default function App() {
         element={
           <ProtectedLayout minRole="admin">
             <UsersPage />
+          </ProtectedLayout>
+        }
+      />
+      <Route
+        path="/sites"
+        element={
+          <ProtectedLayout minRole="admin">
+            <SitesPage />
           </ProtectedLayout>
         }
       />

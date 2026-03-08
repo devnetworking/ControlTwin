@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.security import create_access_token, create_refresh_token, decode_token, hash_password, verify_password
 from app.models.models import User
-from app.schemas.schemas import TokenResponse, UserCreate
+from app.schemas.schemas import TokenResponse, UserCreate, UserUpdate
 
 
 class UserService:
@@ -82,6 +82,65 @@ class UserService:
         await self.session.commit()
         await self.session.refresh(user)
         return user
+
+    async def list_users(self) -> list[User]:
+        """List all users."""
+        result = await self.session.execute(select(User).order_by(User.created_at.desc()))
+        return list(result.scalars().all())
+
+    async def update_user(self, user_id: str, payload: UserUpdate) -> User:
+        """Update user fields."""
+        result = await self.session.execute(select(User).where(User.id == user_id))
+        user = result.scalar_one_or_none()
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+        updates = payload.model_dump(exclude_unset=True)
+        if "email" in updates and updates["email"] != user.email:
+            existing_email = await self.session.execute(select(User).where(User.email == updates["email"]))
+            existing = existing_email.scalar_one_or_none()
+            if existing and existing.id != user.id:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already exists")
+
+        for key, value in updates.items():
+            setattr(user, key, value)
+
+        await self.session.commit()
+        await self.session.refresh(user)
+        return user
+
+    async def activate_user(self, user_id: str) -> User:
+        """Activate user account."""
+        result = await self.session.execute(select(User).where(User.id == user_id))
+        user = result.scalar_one_or_none()
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        user.is_active = True
+        user.locked_until = None
+        user.failed_login_attempts = 0
+        await self.session.commit()
+        await self.session.refresh(user)
+        return user
+
+    async def deactivate_user(self, user_id: str) -> User:
+        """Deactivate user account."""
+        result = await self.session.execute(select(User).where(User.id == user_id))
+        user = result.scalar_one_or_none()
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        user.is_active = False
+        await self.session.commit()
+        await self.session.refresh(user)
+        return user
+
+    async def delete_user(self, user_id: str) -> None:
+        """Delete user account."""
+        result = await self.session.execute(select(User).where(User.id == user_id))
+        user = result.scalar_one_or_none()
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        await self.session.delete(user)
+        await self.session.commit()
 
     async def refresh_tokens(self, refresh_token: str) -> TokenResponse:
         """Refresh access and refresh tokens."""
