@@ -1,0 +1,17 @@
+fastapi
+uvicorn[standard]
+pydantic-settings
+aioredis
+aiokafka
+chromadb-client
+ollama
+scikit-learn
+torch
+numpy
+pandas
+prophet
+mlflow
+structlog
+httpx
+celery
+pytest
