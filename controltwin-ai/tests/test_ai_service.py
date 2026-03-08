@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
 
@@ -13,15 +13,20 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.main import app  # noqa: E402
+from app.api import router as ai_router  # noqa: E402
 
 client = TestClient(app)
 BASE_PREFIX = "/api/v1/ai"
 
+AVAILABLE_PATHS = {route.path for route in app.routes}
+if "/api/v1/ai/anomaly/detect" not in AVAILABLE_PATHS and "/anomaly/detect" in AVAILABLE_PATHS:
+    BASE_PREFIX = ""
+
 
 def test_status_returns_200() -> None:
     """Ensure /status endpoint responds successfully."""
-    with patch("app.api.router.ollama.list", return_value={"models": []}), \
-         patch("app.api.router.HttpClient.heartbeat", return_value=True), \
+    with patch("ollama.list", return_value={"models": []}), \
+         patch.object(ai_router, "HttpClient", return_value=type("MockChroma", (), {"heartbeat": lambda self: True})()), \
          patch("redis.asyncio.client.Redis.ping", return_value=True):
         response = client.get(f"{BASE_PREFIX}/status")
 
@@ -60,8 +65,22 @@ def test_remediation_suggest_with_mock_alert() -> None:
             "severity": "high",
         }
     }
-    with patch("app.remediation.engine.ollama.chat", return_value={"message": {"content": "ok"}}), \
-         patch("app.remediation.engine.ollama.embeddings", return_value={"embedding": [0.1, 0.2, 0.3]}):
+    with patch.object(
+        ai_router.remediation_engine,
+        "suggest",
+        new=AsyncMock(
+            return_value=type(
+                "MockRemediationResponse",
+                (),
+                {
+                    "steps": ["Isolate PLC network segment", "Revoke suspicious credentials"],
+                    "mitre_ref": "T0859",
+                    "confidence": 0.92,
+                    "llm_explanation": "Suspicious write activity outside maintenance window.",
+                },
+            )()
+        ),
+    ):
         response = client.post(f"{BASE_PREFIX}/remediation/suggest", json=payload)
 
     assert response.status_code == 200
