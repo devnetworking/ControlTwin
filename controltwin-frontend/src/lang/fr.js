@@ -5,6 +5,7 @@ const fr = {
     topology: "Topologie",
     alerts: "Alertes",
     collectors: "Collecteurs",
+    twins: "Jumeaux",
     users: "Utilisateurs",
     settings: "Paramètres",
     logout: "Déconnexion",

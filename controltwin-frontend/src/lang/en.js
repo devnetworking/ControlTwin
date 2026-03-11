@@ -5,6 +5,7 @@ const en = {
     topology: "Topology",
     alerts: "Alerts",
     collectors: "Collectors",
+    twins: "Twins",
     users: "Users",
     settings: "Settings",
     logout: "Logout",

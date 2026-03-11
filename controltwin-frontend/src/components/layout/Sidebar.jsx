@@ -4,6 +4,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Cpu,
+  Orbit,
   PlusSquare,
   LayoutDashboard,
   Network,
@@ -29,6 +30,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
       title: "Operations",
       items: [
         { to: "/dashboard", label: t("nav.dashboard"), icon: LayoutDashboard },
+        { to: "/twins", label: t("nav.twins") || "Twins", icon: Orbit },
         { to: "/assets", label: t("nav.assets"), icon: Cpu },
         { to: "/assets/new", label: t("assets.addAsset"), icon: PlusSquare },
         { to: "/topology", label: t("nav.topology"), icon: Network },

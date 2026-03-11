@@ -12,6 +12,7 @@ import UsersPage from "./pages/UsersPage";
 import SettingsPage from "./pages/SettingsPage";
 import SitesPage from "./pages/SitesPage";
 import AssetCreatePage from "./pages/AssetCreatePage";
+import TwinPage from "./pages/TwinPage";
 
 function ProtectedLayout({ children, minRole }) {
   return (
@@ -55,6 +56,14 @@ export default function App() {
         element={
           <ProtectedLayout>
             <AssetCreatePage />
+          </ProtectedLayout>
+        }
+      />
+      <Route
+        path="/twins"
+        element={
+          <ProtectedLayout>
+            <TwinPage />
           </ProtectedLayout>
         }
       />
