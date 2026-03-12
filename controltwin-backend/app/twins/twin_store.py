@@ -4,13 +4,18 @@
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import Callable
 from typing import Any
 
 from redis.asyncio import Redis
+from redis.exceptions import RedisError
 
 from app.core.config import settings
 from app.twins.twin_models import TwinEvent, TwinState
+
+
+logger = logging.getLogger(__name__)
 
 
 class TwinStore:
@@ -20,25 +25,41 @@ class TwinStore:
         self._redis_factory = redis_factory
         self._redis: Redis | None = None
 
-    async def _client(self) -> Redis:
+    async def _client(self) -> Redis | None:
         if self._redis is None:
-            if self._redis_factory:
-                self._redis = self._redis_factory()
-            else:
-                self._redis = Redis.from_url(settings.REDIS_URL, decode_responses=True)
+            try:
+                if self._redis_factory:
+                    self._redis = self._redis_factory()
+                else:
+                    self._redis = Redis.from_url(settings.REDIS_URL, decode_responses=True)
+                await self._redis.ping()
+            except RedisError as exc:
+                logger.warning("Redis unavailable, TwinStore running in degraded mode: %s", exc)
+                self._redis = None
         return self._redis
 
     async def save_state(self, asset_id: str, state: TwinState) -> None:
         """Store current state with 1h TTL."""
         client = await self._client()
+        if client is None:
+            return
         key = f"twin:state:{asset_id}"
-        await client.set(key, state.model_dump_json(), ex=3600)
+        try:
+            await client.set(key, state.model_dump_json(), ex=3600)
+        except RedisError as exc:
+            logger.warning("Redis save_state failed for %s: %s", asset_id, exc)
 
     async def get_state(self, asset_id: str) -> TwinState | None:
         """Fetch one twin state from Redis."""
         client = await self._client()
+        if client is None:
+            return None
         key = f"twin:state:{asset_id}"
-        payload = await client.get(key)
+        try:
+            payload = await client.get(key)
+        except RedisError as exc:
+            logger.warning("Redis get_state failed for %s: %s", asset_id, exc)
+            return None
         if not payload:
             return None
         return TwinState.model_validate_json(payload)
@@ -46,16 +67,27 @@ class TwinStore:
     async def save_snapshot(self, asset_id: str, state: TwinState) -> None:
         """Append state snapshot to history list and trim to last 1000 items."""
         client = await self._client()
+        if client is None:
+            return
         key = f"twin:history:{asset_id}"
-        await client.lpush(key, state.model_dump_json())
-        await client.ltrim(key, 0, 999)
+        try:
+            await client.lpush(key, state.model_dump_json())
+            await client.ltrim(key, 0, 999)
+        except RedisError as exc:
+            logger.warning("Redis save_snapshot failed for %s: %s", asset_id, exc)
 
     async def get_history(self, asset_id: str, n: int = 100) -> list[TwinState]:
         """Return latest N snapshots for asset (newest first)."""
         client = await self._client()
+        if client is None:
+            return []
         key = f"twin:history:{asset_id}"
         count = max(1, n)
-        rows = await client.lrange(key, 0, count - 1)
+        try:
+            rows = await client.lrange(key, 0, count - 1)
+        except RedisError as exc:
+            logger.warning("Redis get_history failed for %s: %s", asset_id, exc)
+            return []
         states: list[TwinState] = []
         for row in rows:
             try:
@@ -67,12 +99,20 @@ class TwinStore:
     async def publish_event(self, event: TwinEvent) -> None:
         """Publish event to twin:events channel."""
         client = await self._client()
-        await client.publish("twin:events", event.model_dump_json())
+        if client is None:
+            return
+        try:
+            await client.publish("twin:events", event.model_dump_json())
+        except RedisError as exc:
+            logger.warning("Redis publish_event failed: %s", exc)
 
     async def close(self) -> None:
         """Close Redis connection."""
         if self._redis is not None:
-            await self._redis.close()
+            try:
+                await self._redis.close()
+            except RedisError as exc:
+                logger.warning("Redis close failed: %s", exc)
             self._redis = None
 
     @staticmethod

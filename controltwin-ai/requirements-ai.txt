@@ -2,11 +2,12 @@ fastapi
 uvicorn[standard]
 pydantic-settings
 aioredis
+redis
 aiokafka
 chromadb-client
 ollama
 scikit-learn
-torch
+torch==2.2.2
 numpy
 pandas
 prophet

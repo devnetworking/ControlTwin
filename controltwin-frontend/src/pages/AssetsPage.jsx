@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import { Eye, Plus } from "lucide-react";
+import { Eye, Plus, Tags } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAssets, useCreateAsset } from "../hooks/useAssets";
 import { Input } from "../components/ui/input";
@@ -23,8 +23,17 @@ export default function AssetsPage() {
   const [filters, setFilters] = useState({ q: "", asset_type: "", status: "", criticality: "" });
   const [page, setPage] = useState(1);
   const [open, setOpen] = useState(false);
-  const [newAsset, setNewAsset] = useState({ tag: "", name: "", asset_type: "plc", protocol: "modbus_tcp", site_id: "" });
+  const [newAsset, setNewAsset] = useState({
+    tag: "",
+    name: "",
+    asset_type: "plc",
+    protocol: "modbus_tcp",
+    site_id: "",
+    purdue_level: 1
+  });
   const [errorMessage, setErrorMessage] = useState("");
+  const [tagsOpen, setTagsOpen] = useState(false);
+  const [selectedAsset, setSelectedAsset] = useState(null);
 
   const { data } = useAssets(filters);
   const createAsset = useCreateAsset();
@@ -59,13 +68,28 @@ export default function AssetsPage() {
 
   async function submitCreate(e) {
     e.preventDefault();
-    if (!newAsset.tag || !newAsset.name || !newAsset.asset_type || !newAsset.site_id || !newAsset.protocol) return;
+    if (
+      !newAsset.tag ||
+      !newAsset.name ||
+      !newAsset.asset_type ||
+      !newAsset.site_id ||
+      !newAsset.protocol ||
+      newAsset.purdue_level == null ||
+      Number.isNaN(Number(newAsset.purdue_level))
+    ) return;
     setErrorMessage("");
 
     try {
       await createAsset.mutateAsync(newAsset);
       setOpen(false);
-      setNewAsset({ tag: "", name: "", asset_type: "plc", protocol: "modbus_tcp", site_id: "" });
+      setNewAsset({
+        tag: "",
+        name: "",
+        asset_type: "plc",
+        protocol: "modbus_tcp",
+        site_id: "",
+        purdue_level: 1
+      });
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 422) {
         setErrorMessage("Invalid asset data. Please check required fields and formats.");
@@ -165,9 +189,22 @@ export default function AssetsPage() {
                   <TD><StatusDot status={a.status || "offline"} /></TD>
                   <TD>{formatDate(a.last_seen)}</TD>
                   <TD>
-                    <Button size="sm" variant="ghost" onClick={() => navigate(`/assets/${a.id}`)}>
-                      <Eye className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button size="sm" variant="ghost" onClick={() => navigate(`/assets/${a.id}`)}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setSelectedAsset(a);
+                          setTagsOpen(true);
+                        }}
+                        title="Afficher les tags"
+                      >
+                        <Tags className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TD>
                 </TR>
               ))}
@@ -231,11 +268,52 @@ export default function AssetsPage() {
               </option>
             ))}
           </Select>
+          <Input
+            type="number"
+            min={0}
+            max={5}
+            placeholder="Purdue level (0-5)"
+            value={newAsset.purdue_level}
+            onChange={(e) =>
+              setNewAsset((s) => ({
+                ...s,
+                purdue_level: e.target.value === "" ? "" : Number(e.target.value)
+              }))
+            }
+            required
+          />
           {errorMessage ? <p className="text-sm text-ot-red">{errorMessage}</p> : null}
           <Button type="submit" className="w-full" disabled={createAsset.isPending}>
             {createAsset.isPending ? "Creating..." : "Create Asset"}
           </Button>
         </form>
+      </Dialog>
+
+      <Dialog open={tagsOpen} onOpenChange={setTagsOpen} title={`Tags associés - ${selectedAsset?.name || "-"}`}>
+        <div className="space-y-2">
+          {(() => {
+            const list = Array.isArray(selectedAsset?.tags)
+              ? selectedAsset.tags
+              : selectedAsset?.tag
+                ? [selectedAsset.tag]
+                : [];
+            if (!list.length) {
+              return <p className="text-sm text-gray-300">Aucun tag</p>;
+            }
+            return (
+              <ul className="space-y-1">
+                {list.map((tagValue, idx) => (
+                  <li
+                    key={`asset-tag-${selectedAsset?.id || "unknown"}-${idx}`}
+                    className="rounded border border-ot-border px-2 py-1 font-mono text-sm text-ot-blue"
+                  >
+                    {String(tagValue)}
+                  </li>
+                ))}
+              </ul>
+            );
+          })()}
+        </div>
       </Dialog>
     </div>
   );

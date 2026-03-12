@@ -52,6 +52,8 @@ class Settings(BaseSettings):
     MQTT_USERNAME: str | None = None
     MQTT_PASSWORD: str | None = None
 
+    REDIS_URL: str = Field(default="redis://redis:6379/0")
+
     PGADMIN_DEFAULT_EMAIL: str = Field(default="admin@controltwin.local")
     PGADMIN_DEFAULT_PASSWORD: str = Field(default="admin")
 

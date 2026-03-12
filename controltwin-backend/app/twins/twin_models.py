@@ -54,6 +54,7 @@ class TwinState(BaseModel):
 
     asset_id: str
     asset_name: str
+    asset_tag: str | None = None
     asset_type: str
     last_updated: datetime = Field(default_factory=utcnow)
     health_score: float | None = None

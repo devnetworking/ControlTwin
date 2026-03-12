@@ -57,6 +57,7 @@ def _asset_to_twin(asset: Asset) -> TwinState:
     return TwinState(
         asset_id=str(asset.id),
         asset_name=asset.name,
+        asset_tag=asset.tag,
         asset_type=asset.asset_type.value if hasattr(asset.asset_type, "value") else str(asset.asset_type),
         last_updated=utcnow(),
         current_values={},
@@ -72,39 +73,12 @@ async def list_twins(
     """List all in-memory twin states."""
     states = await engine.get_all_states()
     if states:
-        return states
+        assets = (await session.execute(select(Asset).where(Asset.is_active.is_(True)))).scalars().all()
+        tags_by_id = {str(a.id): a.tag for a in assets}
+        return [TwinState(**{**s.model_dump(), "asset_tag": tags_by_id.get(s.asset_id)}) for s in states]
 
     assets = (await session.execute(select(Asset).where(Asset.is_active.is_(True)))).scalars().all()
     return [_asset_to_twin(asset) for asset in assets]
-
-
-@router.get("/{asset_id}", response_model=TwinState)
-async def get_twin(
-    asset_id: uuid.UUID,
-    session: AsyncSession = Depends(get_session),
-    _: User = Depends(get_current_user),
-) -> TwinState:
-    """Get state for one asset id."""
-    asset = await session.get(Asset, asset_id)
-    if not asset:
-        raise HTTPException(status_code=404, detail="Asset not found")
-
-    state = await engine.get_state(str(asset_id))
-    if state:
-        return state
-
-    redis_state = await store.get_state(str(asset_id))
-    if redis_state:
-        return redis_state
-
-    return TwinState(
-        asset_id=str(asset.id),
-        asset_name=asset.name,
-        asset_type=asset.asset_type.value if hasattr(asset.asset_type, "value") else str(asset.asset_type),
-        last_updated=utcnow(),
-        current_values={},
-        status="normal",
-    )
 
 
 @router.get("/search", response_model=list[TwinState])
@@ -134,8 +108,38 @@ async def search_twins(
     result: list[TwinState] = []
     for asset in filtered:
         state = await engine.get_state(str(asset.id))
-        result.append(state if state else _asset_to_twin(asset))
+        result.append(TwinState(**{**state.model_dump(), "asset_tag": asset.tag}) if state else _asset_to_twin(asset))
     return result
+
+
+@router.get("/{asset_id}", response_model=TwinState)
+async def get_twin(
+    asset_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+    _: User = Depends(get_current_user),
+) -> TwinState:
+    """Get state for one asset id."""
+    asset = await session.get(Asset, asset_id)
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+
+    state = await engine.get_state(str(asset_id))
+    if state:
+        return TwinState(**{**state.model_dump(), "asset_tag": asset.tag})
+
+    redis_state = await store.get_state(str(asset_id))
+    if redis_state:
+        return TwinState(**{**redis_state.model_dump(), "asset_tag": asset.tag})
+
+    return TwinState(
+        asset_id=str(asset.id),
+        asset_name=asset.name,
+        asset_tag=asset.tag,
+        asset_type=asset.asset_type.value if hasattr(asset.asset_type, "value") else str(asset.asset_type),
+        last_updated=utcnow(),
+        current_values={},
+        status="normal",
+    )
 
 
 @router.post("/", response_model=TwinState)
@@ -170,7 +174,7 @@ async def create_twin(
 
     current = await engine.get_state(str(asset.id))
     if current:
-        return current
+        return TwinState(**{**current.model_dump(), "asset_tag": asset.tag})
 
     initial = await engine.update_state(
         asset_id=str(asset.id),
@@ -180,7 +184,7 @@ async def create_twin(
     )
     await store.save_state(str(asset.id), initial)
     await store.save_snapshot(str(asset.id), initial)
-    return initial
+    return TwinState(**{**initial.model_dump(), "asset_tag": asset.tag})
 
 
 @router.patch("/{asset_id}", response_model=TwinState)
@@ -206,7 +210,7 @@ async def update_twin(
     )
     await store.save_state(str(asset.id), state)
     await store.save_snapshot(str(asset.id), state)
-    return state
+    return TwinState(**{**state.model_dump(), "asset_tag": asset.tag})
 
 
 @router.delete("/{asset_id}")
@@ -306,7 +310,7 @@ async def simulate_twin(
     for event in events:
         await store.publish_event(event)
 
-    return latest
+    return TwinState(**{**latest.model_dump(), "asset_tag": asset.tag})
 
 
 @router.get("/{asset_id}/history", response_model=list[TwinState])

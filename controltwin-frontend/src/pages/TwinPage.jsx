@@ -415,7 +415,7 @@ export default function TwinPage() {
           >
             {(twins || []).map((t) => (
               <option key={t.asset_id} value={t.asset_id}>
-                {t.asset_name} ({t.asset_type})
+                {t.asset_name} {t.asset_tag ? `(${t.asset_tag}) ` : ""}({t.asset_type})
               </option>
             ))}
           </select>

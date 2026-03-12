@@ -15,7 +15,8 @@ const INITIAL_ASSET = {
   protocol: "modbus_tcp",
   site_id: "",
   ip_address: "",
-  port: ""
+  port: "",
+  purdue_level: 1
 };
 
 export default function AssetCreatePage() {
@@ -39,20 +40,31 @@ export default function AssetCreatePage() {
 
   async function submitCreate(e) {
     e.preventDefault();
-    if (!newAsset.tag || !newAsset.name || !newAsset.asset_type || !newAsset.site_id || !newAsset.protocol) return;
+    if (
+      !newAsset.tag ||
+      !newAsset.name ||
+      !newAsset.asset_type ||
+      !newAsset.site_id ||
+      !newAsset.protocol ||
+      newAsset.purdue_level == null ||
+      Number.isNaN(Number(newAsset.purdue_level))
+    ) return;
     setErrorMessage("");
 
     const payload = {
       ...newAsset,
       port: newAsset.port ? Number(newAsset.port) : undefined,
-      ip_address: newAsset.ip_address || undefined
+      ip_address: newAsset.ip_address || undefined,
+      purdue_level: Number(newAsset.purdue_level)
     };
 
     try {
       await createAsset.mutateAsync(payload);
       navigate("/assets");
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status === 422) {
+      if (axios.isAxiosError(error) && error.response?.status === 409) {
+        setErrorMessage("Tag déjà utilisé sur ce site.");
+      } else if (axios.isAxiosError(error) && error.response?.status === 422) {
         setErrorMessage("Invalid asset data. Please check required fields and formats.");
       } else {
         setErrorMessage("Failed to create asset. Please try again.");
@@ -125,6 +137,20 @@ export default function AssetCreatePage() {
               </option>
             ))}
           </Select>
+          <Input
+            placeholder="Purdue level (0-5)"
+            type="number"
+            min={0}
+            max={5}
+            value={newAsset.purdue_level}
+            onChange={(e) =>
+              setNewAsset((s) => ({
+                ...s,
+                purdue_level: e.target.value === "" ? "" : Number(e.target.value)
+              }))
+            }
+            required
+          />
 
           {errorMessage ? <p className="text-sm text-ot-red">{errorMessage}</p> : null}
 
